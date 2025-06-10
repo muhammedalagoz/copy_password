@@ -4,6 +4,11 @@ import pyautogui
 import pyperclip
 import time
 import platform
+import keyboard
+import threading
+from PIL import Image, ImageTk
+import pystray
+import os
 
 class PasswordCopier:
     def __init__(self, root):
@@ -37,8 +42,41 @@ class PasswordCopier:
         ttk.Label(main_frame, 
                  text="Kullanım:\n1. 'Şifreyi Yapıştır' butonuna tıklayın\n"
                       "2. kullanıcı adı alanına tıklayın\n"
-                      "3. Otomatik yapıştırılır",
+                      "3. Otomatik yapıştırılır\n\n"
+                      "Kısayol: Ctrl+Alt+Shift+V\n"
+                      "Uygulama sistem tepsisinde çalışmaya devam eder",
                  justify=tk.CENTER).grid(row=3, column=0, pady=10)
+
+        # Kısayol tuşunu ayarla
+        keyboard.add_hotkey('ctrl+alt+shift+v', self.save_position)
+        
+        # Sistem tepsisi için ikon oluştur
+        self.setup_tray()
+        
+        # Pencere kapatıldığında kısayolu kaldır
+        self.root.protocol("WM_DELETE_WINDOW", self.hide_window)
+
+    def setup_tray(self):
+        # Basit bir ikon oluştur (16x16 siyah kare)
+        image = Image.new('RGB', (16, 16), color='black')
+        menu = pystray.Menu(
+            pystray.MenuItem('Göster', self.show_window),
+            pystray.MenuItem('Çıkış', self.quit_app)
+        )
+        self.icon = pystray.Icon("password_copier", image, "Şifre Yapıştırıcı", menu)
+        threading.Thread(target=self.icon.run, daemon=True).start()
+
+    def hide_window(self):
+        self.root.withdraw()  # Pencereyi gizle
+
+    def show_window(self):
+        self.root.deiconify()  # Pencereyi göster
+        self.root.lift()  # Pencereyi öne getir
+
+    def quit_app(self):
+        keyboard.remove_hotkey('ctrl+alt+shift+v')
+        self.icon.stop()
+        self.root.destroy()
 
     def save_position(self):
         self.status_var.set("kopyalandı")
